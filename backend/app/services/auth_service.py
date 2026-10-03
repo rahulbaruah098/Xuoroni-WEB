@@ -5,6 +5,8 @@ from pymongo.errors import DuplicateKeyError
 
 from app.repositories.auth_repository import (
     create_identity,
+    get_identity,
+    get_identity_by_email,
     get_identity_by_phone,
 )
 from app.repositories.session_repository import (
@@ -28,6 +30,12 @@ from app.security.tokens import (
     generate_token_family_id,
     hash_refresh_token,
 )
+from app.services.email_otp_service import (
+    verify_email_otp,
+)
+from app.services.google_token_service import (
+    verify_google_id_token,
+)
 from app.services.otp_service import verify_otp
 
 
@@ -45,6 +53,10 @@ class RefreshTokenReuseDetected(AuthenticationError):
 
 class AccountUnavailable(AuthenticationError):
     """Raised when an account cannot authenticate."""
+
+
+class GoogleAccountConflict(AuthenticationError):
+    """Raised when Google identity ownership conflicts."""
 
 
 def utc_now() -> datetime:
@@ -352,5 +364,414 @@ def authenticate_phone_otp(
         "user": user,
         "phone": normalized_phone,
         "is_new_user": is_new_user,
+        "tokens": tokens,
+    }
+
+
+
+
+def authenticate_email_otp(
+    email: str,
+    otp: str,
+    *,
+    metadata=None,
+):
+    verification = verify_email_otp(
+        email,
+        otp,
+    )
+
+    normalized_email = verification[
+        "email"
+    ]
+
+    identity = get_identity_by_email(
+        normalized_email
+    )
+
+    is_new_user = False
+
+    if identity is not None:
+        user = get_user_by_id(
+            identity["user_id"]
+        )
+
+    else:
+        user = create_user()
+
+        try:
+            identity = create_identity(
+                user_id=user["_id"],
+                provider="email",
+                provider_subject=(
+                    normalized_email
+                ),
+                email_normalized=(
+                    normalized_email
+                ),
+                verified=True,
+            )
+
+            is_new_user = True
+
+        except DuplicateKeyError:
+            # Another request created the
+            # email identity first.
+            delete_user(
+                user["_id"]
+            )
+
+            identity = (
+                get_identity_by_email(
+                    normalized_email
+                )
+            )
+
+            if identity is None:
+                raise AuthenticationError(
+                    (
+                        "Authentication identity "
+                        "could not be created."
+                    )
+                )
+
+            user = get_user_by_id(
+                identity["user_id"]
+            )
+
+    if user is None:
+        raise AuthenticationError(
+            (
+                "Authentication account "
+                "is unavailable."
+            )
+        )
+
+    account_status = user.get(
+        "account_status",
+        "active",
+    )
+
+    if account_status in {
+        "suspended",
+        "banned",
+        "deleted",
+    }:
+        raise AccountUnavailable(
+            "This account is unavailable."
+        )
+
+    update_last_login(
+        user["_id"]
+    )
+
+    tokens = issue_session(
+        user["_id"],
+        metadata=metadata,
+    )
+
+    return {
+        "user": user,
+        "email": normalized_email,
+        "is_new_user": is_new_user,
+        "tokens": tokens,
+    }
+
+
+
+
+
+def _google_identity_metadata(
+    claims: dict,
+):
+    metadata = {
+        "email": claims["email"],
+        "email_verified": True,
+    }
+
+    for key in (
+        "name",
+        "picture",
+        "hosted_domain",
+    ):
+        value = claims.get(
+            key
+        )
+
+        if value:
+            metadata[key] = value
+
+    return metadata
+
+
+def _link_google_identity(
+    *,
+    user_id,
+    subject,
+    claims,
+):
+    try:
+        return create_identity(
+            user_id=user_id,
+            provider="google",
+            provider_subject=subject,
+            verified=True,
+            metadata=(
+                _google_identity_metadata(
+                    claims
+                )
+            ),
+        )
+
+    except DuplicateKeyError:
+        identity = get_identity(
+            provider="google",
+            provider_subject=subject,
+        )
+
+        if identity is None:
+            raise AuthenticationError(
+                (
+                    "Google identity could "
+                    "not be linked."
+                )
+            )
+
+        if (
+            str(identity["user_id"])
+            != str(user_id)
+        ):
+            raise GoogleAccountConflict(
+                (
+                    "This Google account is "
+                    "already linked to another "
+                    "Xuoroni account."
+                )
+            )
+
+        return identity
+
+
+def authenticate_google_id_token(
+    id_token: str,
+    *,
+    metadata=None,
+):
+    claims = verify_google_id_token(
+        id_token
+    )
+
+    subject = claims[
+        "sub"
+    ]
+
+    email = claims[
+        "email"
+    ]
+
+    google_identity = get_identity(
+        provider="google",
+        provider_subject=subject,
+    )
+
+    email_identity = (
+        get_identity_by_email(
+            email
+        )
+    )
+
+    is_new_user = False
+    linked_existing_account = False
+
+    if google_identity is not None:
+        if (
+            email_identity is not None
+            and str(
+                email_identity[
+                    "user_id"
+                ]
+            )
+            != str(
+                google_identity[
+                    "user_id"
+                ]
+            )
+        ):
+            raise GoogleAccountConflict(
+                (
+                    "The verified Google email "
+                    "belongs to a different "
+                    "Xuoroni account."
+                )
+            )
+
+        user = get_user_by_id(
+            google_identity[
+                "user_id"
+            ]
+        )
+
+    elif email_identity is not None:
+        user = get_user_by_id(
+            email_identity[
+                "user_id"
+            ]
+        )
+
+        if user is None:
+            raise AuthenticationError(
+                (
+                    "Authentication account "
+                    "is unavailable."
+                )
+            )
+
+        _link_google_identity(
+            user_id=user["_id"],
+            subject=subject,
+            claims=claims,
+        )
+
+        linked_existing_account = True
+
+    else:
+        user = create_user()
+
+        try:
+            create_identity(
+                user_id=user["_id"],
+                provider="google",
+                provider_subject=subject,
+                email_normalized=email,
+                verified=True,
+                metadata=(
+                    _google_identity_metadata(
+                        claims
+                    )
+                ),
+            )
+
+            is_new_user = True
+
+        except DuplicateKeyError:
+            # A concurrent login may have
+            # created the Google subject or
+            # claimed the verified email.
+            delete_user(
+                user["_id"]
+            )
+
+            google_identity = (
+                get_identity(
+                    provider="google",
+                    provider_subject=subject,
+                )
+            )
+
+            email_identity = (
+                get_identity_by_email(
+                    email
+                )
+            )
+
+            if (
+                google_identity is not None
+                and email_identity is not None
+                and str(
+                    google_identity[
+                        "user_id"
+                    ]
+                )
+                != str(
+                    email_identity[
+                        "user_id"
+                    ]
+                )
+            ):
+                raise GoogleAccountConflict(
+                    (
+                        "Google identity and "
+                        "verified email belong "
+                        "to different accounts."
+                    )
+                )
+
+            if google_identity is not None:
+                user = get_user_by_id(
+                    google_identity[
+                        "user_id"
+                    ]
+                )
+
+            elif email_identity is not None:
+                user = get_user_by_id(
+                    email_identity[
+                        "user_id"
+                    ]
+                )
+
+                if user is None:
+                    raise AuthenticationError(
+                        (
+                            "Authentication "
+                            "account is "
+                            "unavailable."
+                        )
+                    )
+
+                _link_google_identity(
+                    user_id=user["_id"],
+                    subject=subject,
+                    claims=claims,
+                )
+
+                linked_existing_account = True
+
+            else:
+                raise AuthenticationError(
+                    (
+                        "Google authentication "
+                        "could not be completed."
+                    )
+                )
+
+    if user is None:
+        raise AuthenticationError(
+            (
+                "Authentication account "
+                "is unavailable."
+            )
+        )
+
+    account_status = user.get(
+        "account_status",
+        "active",
+    )
+
+    if account_status in {
+        "suspended",
+        "banned",
+        "deleted",
+    }:
+        raise AccountUnavailable(
+            "This account is unavailable."
+        )
+
+    update_last_login(
+        user["_id"]
+    )
+
+    tokens = issue_session(
+        user["_id"],
+        metadata=metadata,
+    )
+
+    return {
+        "user": user,
+        "email": email,
+        "is_new_user": is_new_user,
+        "linked_existing_account": (
+            linked_existing_account
+        ),
         "tokens": tokens,
     }

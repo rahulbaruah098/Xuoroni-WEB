@@ -94,6 +94,72 @@ class BaseConfig:
         "",
     )
 
+    # SMTP / Email Authentication
+    SMTP_HOST = os.getenv(
+        "SMTP_HOST",
+        "",
+    )
+
+    SMTP_PORT = int(
+        os.getenv(
+            "SMTP_PORT",
+            "587",
+        )
+    )
+
+    SMTP_USERNAME = os.getenv(
+        "SMTP_USERNAME",
+        "",
+    )
+
+    SMTP_PASSWORD = os.getenv(
+        "SMTP_PASSWORD",
+        "",
+    )
+
+    SMTP_FROM_EMAIL = os.getenv(
+        "SMTP_FROM_EMAIL",
+        "",
+    )
+
+    SMTP_FROM_NAME = os.getenv(
+        "SMTP_FROM_NAME",
+        "Xuoroni",
+    )
+
+    SMTP_USE_TLS = (
+        os.getenv(
+            "SMTP_USE_TLS",
+            "true",
+        ).strip().lower()
+        in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+    )
+
+    SMTP_TIMEOUT_SECONDS = int(
+        os.getenv(
+            "SMTP_TIMEOUT_SECONDS",
+            "15",
+        )
+    )
+
+    # Email OTP uses its own Redis namespace so it
+    # can never collide with mobile OTP records.
+    EMAIL_OTP_KEY_PREFIX = os.getenv(
+        "EMAIL_OTP_KEY_PREFIX",
+        "xuoroni:email-otp",
+    )
+
+    # Development only. Never expose this in production.
+    DEV_EMAIL_OTP_CODE = os.getenv(
+        "DEV_EMAIL_OTP_CODE",
+        "",
+    )
+
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
     SESSION_COOKIE_SECURE = False
@@ -219,6 +285,3 @@ def get_config():
         return TestingConfig
 
     return DevelopmentConfig
-
-
-
