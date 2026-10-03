@@ -1,4 +1,8 @@
-from flask import jsonify
+from flask import (
+    g,
+    has_request_context,
+    jsonify,
+)
 
 
 def error_response(
@@ -9,6 +13,16 @@ def error_response(
     details=None,
     request_id=None,
 ):
+    if (
+        request_id is None
+        and has_request_context()
+    ):
+        request_id = getattr(
+            g,
+            "request_id",
+            None,
+        )
+
     payload = {
         "code": code,
         "message": message,
@@ -18,9 +32,13 @@ def error_response(
         payload["details"] = details
 
     if request_id:
-        payload["request_id"] = request_id
+        payload["request_id"] = (
+            request_id
+        )
 
-    return jsonify(payload), status_code
+    return jsonify(
+        payload
+    ), status_code
 
 
 def register_error_handlers(app):

@@ -85,6 +85,22 @@ def ensure_indexes(db) -> list[str]:
 
     created.append(
         db.auth_sessions.create_index(
+            [("session_id", ASCENDING)],
+            unique=True,
+        )
+    )
+
+    created.append(
+        db.auth_sessions.create_index(
+            [
+                ("family_id", ASCENDING),
+                ("revoked_at", ASCENDING),
+            ]
+        )
+    )
+
+    created.append(
+        db.auth_sessions.create_index(
             [("expires_at", ASCENDING)],
             expireAfterSeconds=0,
         )
@@ -406,3 +422,4 @@ def ensure_indexes(db) -> list[str]:
     )
 
     return created
+

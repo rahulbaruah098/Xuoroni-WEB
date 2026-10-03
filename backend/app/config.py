@@ -77,6 +77,18 @@ class BaseConfig:
         )
     )
 
+    JWT_ALGORITHM = "HS256"
+
+    JWT_ISSUER = os.getenv(
+        "JWT_ISSUER",
+        "xuoroni-backend",
+    )
+
+    JWT_AUDIENCE = os.getenv(
+        "JWT_AUDIENCE",
+        "xuoroni-mobile",
+    )
+
     GOOGLE_CLIENT_ID = os.getenv(
         "GOOGLE_CLIENT_ID",
         "",
@@ -96,6 +108,63 @@ class BaseConfig:
     )
 
     REQUEST_ID_HEADER = "X-Request-ID"
+
+    OTP_LENGTH = int(
+        os.getenv(
+            "OTP_LENGTH",
+            "6",
+        )
+    )
+
+    OTP_TTL_SECONDS = int(
+        os.getenv(
+            "OTP_TTL_SECONDS",
+            "300",
+        )
+    )
+
+    OTP_RESEND_COOLDOWN_SECONDS = int(
+        os.getenv(
+            "OTP_RESEND_COOLDOWN_SECONDS",
+            "60",
+        )
+    )
+
+    OTP_MAX_ATTEMPTS = int(
+        os.getenv(
+            "OTP_MAX_ATTEMPTS",
+            "5",
+        )
+    )
+
+    OTP_REQUEST_WINDOW_SECONDS = int(
+        os.getenv(
+            "OTP_REQUEST_WINDOW_SECONDS",
+            "3600",
+        )
+    )
+
+    OTP_MAX_REQUESTS_PER_WINDOW = int(
+        os.getenv(
+            "OTP_MAX_REQUESTS_PER_WINDOW",
+            "5",
+        )
+    )
+
+    OTP_KEY_PREFIX = os.getenv(
+        "OTP_KEY_PREFIX",
+        "xuoroni:otp",
+    )
+
+    OTP_HASH_SECRET = os.getenv(
+        "OTP_HASH_SECRET",
+        JWT_SECRET_KEY,
+    )
+
+    DEV_OTP_CODE = os.getenv(
+        "DEV_OTP_CODE",
+        "",
+    )
 
     AUTO_ENSURE_INDEXES = _env_bool(
         "AUTO_ENSURE_INDEXES",
@@ -150,4 +219,6 @@ def get_config():
         return TestingConfig
 
     return DevelopmentConfig
+
+
 

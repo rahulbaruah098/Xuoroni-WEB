@@ -12,6 +12,8 @@ load_dotenv(_BACKEND_DIR / ".env")
 
 
 from .api.system import system_bp
+from .api.legacy import legacy_api_bp
+from .api.v1 import api_v1_bp
 from .config import get_config
 from .db import initialize_database
 from .errors import register_error_handlers
@@ -33,7 +35,6 @@ def create_app(config_override=None) -> Flask:
         )
 
     configure_logging(app)
-
     init_extensions(app)
 
     register_middleware(app)
@@ -41,6 +42,14 @@ def create_app(config_override=None) -> Flask:
 
     app.register_blueprint(
         system_bp
+    )
+
+    app.register_blueprint(
+        legacy_api_bp
+    )
+
+    app.register_blueprint(
+        api_v1_bp
     )
 
     with app.app_context():
@@ -64,3 +73,4 @@ def create_app(config_override=None) -> Flask:
 __all__ = [
     "create_app",
 ]
+
