@@ -145,8 +145,10 @@ def ensure_indexes(db) -> list[str]:
     created.append(
         db.profiles.create_index(
             [
-                ("account_status", ASCENDING),
+                ("onboarding_status", ASCENDING),
                 ("visibility", ASCENDING),
+                ("gender_identity", ASCENDING),
+                ("birth_date", ASCENDING),
                 ("last_active_at", DESCENDING),
             ]
         )
@@ -422,4 +424,5 @@ def ensure_indexes(db) -> list[str]:
     )
 
     return created
+
 

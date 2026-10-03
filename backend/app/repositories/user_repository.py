@@ -132,3 +132,40 @@ def delete_user(user_id):
     )
 
     return result.deleted_count == 1
+
+
+def set_onboarding_status(
+    user_id,
+    status: str,
+):
+    allowed = {
+        "not_started",
+        "in_progress",
+        "completed",
+    }
+
+    if status not in allowed:
+        raise ValueError(
+            "Invalid onboarding status."
+        )
+
+    object_id = _to_object_id(
+        user_id
+    )
+
+    if object_id is None:
+        return False
+
+    result = mongo.db.users.update_one(
+        {
+            "_id": object_id,
+        },
+        {
+            "$set": {
+                "onboarding_status": status,
+                "updated_at": utc_now(),
+            }
+        },
+    )
+
+    return result.matched_count == 1
