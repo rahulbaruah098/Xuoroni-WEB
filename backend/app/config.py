@@ -97,6 +97,11 @@ class BaseConfig:
 
     REQUEST_ID_HEADER = "X-Request-ID"
 
+    AUTO_ENSURE_INDEXES = _env_bool(
+        "AUTO_ENSURE_INDEXES",
+        True,
+    )
+
 
 class DevelopmentConfig(BaseConfig):
     DEBUG = True
@@ -117,6 +122,7 @@ class TestingConfig(BaseConfig):
     SESSION_COOKIE_SECURE = False
 
     EXPOSE_DEV_OTP = True
+    AUTO_ENSURE_INDEXES = False
 
 
 class ProductionConfig(BaseConfig):
@@ -144,3 +150,4 @@ def get_config():
         return TestingConfig
 
     return DevelopmentConfig
+

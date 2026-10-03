@@ -13,6 +13,7 @@ load_dotenv(_BACKEND_DIR / ".env")
 
 from .api.system import system_bp
 from .config import get_config
+from .db import initialize_database
 from .errors import register_error_handlers
 from .extensions import init_extensions
 from .logging import configure_logging
@@ -32,13 +33,18 @@ def create_app(config_override=None) -> Flask:
         )
 
     configure_logging(app)
+
     init_extensions(app)
+
     register_middleware(app)
     register_error_handlers(app)
 
     app.register_blueprint(
         system_bp
     )
+
+    with app.app_context():
+        initialize_database(app)
 
     app.logger.info(
         "Xuoroni application initialized",
