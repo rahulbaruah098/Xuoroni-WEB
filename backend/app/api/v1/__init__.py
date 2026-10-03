@@ -1,7 +1,10 @@
-from flask import Blueprint
+﻿from flask import Blueprint
 
 from app.api.v1.auth.routes import (
     auth_bp,
+)
+from app.api.v1.culture.routes import (
+    culture_bp,
 )
 from app.api.v1.onboarding.routes import (
     onboarding_bp,
@@ -28,6 +31,10 @@ api_v1_bp.register_blueprint(
 
 api_v1_bp.register_blueprint(
     onboarding_bp
+)
+
+api_v1_bp.register_blueprint(
+    culture_bp
 )
 
 
