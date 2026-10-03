@@ -1,0 +1,408 @@
+from pymongo import ASCENDING, DESCENDING, GEOSPHERE
+
+
+def ensure_indexes(db) -> list[str]:
+    """
+    Create all Xuoroni MongoDB indexes required by the
+    current backend foundation.
+
+    MongoDB create_index operations are idempotent when
+    the existing index definition matches.
+    """
+
+    created = []
+
+    # =====================================================
+    # LEGACY / EXISTING WEBSITE COLLECTIONS
+    # =====================================================
+
+    created.append(
+        db.admins.create_index(
+            [("email", ASCENDING)],
+            unique=True,
+        )
+    )
+
+    created.append(
+        db.testers.create_index(
+            [("email", ASCENDING)],
+            unique=True,
+        )
+    )
+
+    created.append(
+        db.settings.create_index(
+            [("key", ASCENDING)],
+            unique=True,
+        )
+    )
+
+    # =====================================================
+    # USER / AUTHENTICATION
+    # =====================================================
+
+    created.append(
+        db.users.create_index(
+            [
+                ("account_status", ASCENDING),
+                ("created_at", DESCENDING),
+            ]
+        )
+    )
+
+    created.append(
+        db.auth_identities.create_index(
+            [
+                ("provider", ASCENDING),
+                ("provider_subject", ASCENDING),
+            ],
+            unique=True,
+        )
+    )
+
+    created.append(
+        db.auth_identities.create_index(
+            [("phone_normalized", ASCENDING)],
+            unique=True,
+            sparse=True,
+        )
+    )
+
+    created.append(
+        db.auth_identities.create_index(
+            [("email_normalized", ASCENDING)],
+            unique=True,
+            sparse=True,
+        )
+    )
+
+    created.append(
+        db.auth_sessions.create_index(
+            [("refresh_token_hash", ASCENDING)],
+            unique=True,
+        )
+    )
+
+    created.append(
+        db.auth_sessions.create_index(
+            [("expires_at", ASCENDING)],
+            expireAfterSeconds=0,
+        )
+    )
+
+    created.append(
+        db.auth_sessions.create_index(
+            [
+                ("user_id", ASCENDING),
+                ("revoked_at", ASCENDING),
+            ]
+        )
+    )
+
+    created.append(
+        db.user_devices.create_index(
+            [
+                ("user_id", ASCENDING),
+                ("device_id", ASCENDING),
+            ],
+            unique=True,
+        )
+    )
+
+    # =====================================================
+    # PROFILE / DISCOVERY
+    # =====================================================
+
+    created.append(
+        db.profiles.create_index(
+            [("user_id", ASCENDING)],
+            unique=True,
+        )
+    )
+
+    created.append(
+        db.profiles.create_index(
+            [("location", GEOSPHERE)]
+        )
+    )
+
+    created.append(
+        db.profiles.create_index(
+            [
+                ("account_status", ASCENDING),
+                ("visibility", ASCENDING),
+                ("last_active_at", DESCENDING),
+            ]
+        )
+    )
+
+    created.append(
+        db.profiles.create_index(
+            [
+                ("surname_searchable", ASCENDING),
+                ("surname_normalized", ASCENDING),
+            ]
+        )
+    )
+
+    created.append(
+        db.discovery_preferences.create_index(
+            [("user_id", ASCENDING)],
+            unique=True,
+        )
+    )
+
+    # =====================================================
+    # MATCHING
+    # =====================================================
+
+    created.append(
+        db.profile_actions.create_index(
+            [
+                ("actor_id", ASCENDING),
+                ("target_id", ASCENDING),
+            ],
+            unique=True,
+        )
+    )
+
+    created.append(
+        db.profile_actions.create_index(
+            [
+                ("target_id", ASCENDING),
+                ("action", ASCENDING),
+                ("created_at", DESCENDING),
+            ]
+        )
+    )
+
+    created.append(
+        db.matches.create_index(
+            [("pair_key", ASCENDING)],
+            unique=True,
+        )
+    )
+
+    created.append(
+        db.matches.create_index(
+            [
+                ("user_ids", ASCENDING),
+                ("status", ASCENDING),
+                ("updated_at", DESCENDING),
+            ]
+        )
+    )
+
+    # =====================================================
+    # CHAT
+    # =====================================================
+
+    created.append(
+        db.conversations.create_index(
+            [("match_id", ASCENDING)],
+            unique=True,
+            sparse=True,
+        )
+    )
+
+    created.append(
+        db.conversations.create_index(
+            [
+                ("member_ids", ASCENDING),
+                ("last_message_at", DESCENDING),
+            ]
+        )
+    )
+
+    created.append(
+        db.messages.create_index(
+            [
+                ("sender_id", ASCENDING),
+                ("client_message_id", ASCENDING),
+            ],
+            unique=True,
+        )
+    )
+
+    created.append(
+        db.messages.create_index(
+            [
+                ("conversation_id", ASCENDING),
+                ("sequence", DESCENDING),
+            ]
+        )
+    )
+
+    # =====================================================
+    # SAFETY
+    # =====================================================
+
+    created.append(
+        db.blocks.create_index(
+            [
+                ("blocker_id", ASCENDING),
+                ("blocked_id", ASCENDING),
+            ],
+            unique=True,
+        )
+    )
+
+    created.append(
+        db.reports.create_index(
+            [
+                ("status", ASCENDING),
+                ("severity", DESCENDING),
+                ("created_at", DESCENDING),
+            ]
+        )
+    )
+
+    created.append(
+        db.trusted_contacts.create_index(
+            [
+                ("user_id", ASCENDING),
+                ("contact_key", ASCENDING),
+            ],
+            unique=True,
+        )
+    )
+
+    created.append(
+        db.location_share_sessions.create_index(
+            [("expires_at", ASCENDING)],
+            expireAfterSeconds=0,
+        )
+    )
+
+    created.append(
+        db.location_share_sessions.create_index(
+            [
+                ("owner_user_id", ASCENDING),
+                ("revoked_at", ASCENDING),
+            ]
+        )
+    )
+
+    created.append(
+        db.safe_meets.create_index(
+            [
+                ("participant_ids", ASCENDING),
+                ("status", ASCENDING),
+                ("start_at", ASCENDING),
+            ]
+        )
+    )
+
+    # =====================================================
+    # CAFE / VENUE / RESERVATIONS
+    # =====================================================
+
+    created.append(
+        db.venues.create_index(
+            [("location", GEOSPHERE)]
+        )
+    )
+
+    created.append(
+        db.venues.create_index(
+            [
+                ("approval_status", ASCENDING),
+                ("city", ASCENDING),
+                ("active", ASCENDING),
+            ]
+        )
+    )
+
+    created.append(
+        db.venue_slots.create_index(
+            [
+                ("venue_id", ASCENDING),
+                ("start_at", ASCENDING),
+            ],
+            unique=True,
+        )
+    )
+
+    created.append(
+        db.reservations.create_index(
+            [
+                ("venue_id", ASCENDING),
+                ("start_at", ASCENDING),
+                ("status", ASCENDING),
+            ]
+        )
+    )
+
+    created.append(
+        db.reservations.create_index(
+            [("idempotency_key", ASCENDING)],
+            unique=True,
+            sparse=True,
+        )
+    )
+
+    # =====================================================
+    # CULTURE
+    # =====================================================
+
+    created.append(
+        db.culture_sources.create_index(
+            [("source_url_normalized", ASCENDING)],
+            unique=True,
+            sparse=True,
+        )
+    )
+
+    created.append(
+        db.culture_entities.create_index(
+            [
+                ("entity_type", ASCENDING),
+                ("slug", ASCENDING),
+            ],
+            unique=True,
+        )
+    )
+
+    created.append(
+        db.festivals.create_index(
+            [
+                ("published", ASCENDING),
+                ("name_normalized", ASCENDING),
+            ]
+        )
+    )
+
+    # =====================================================
+    # NOTIFICATIONS / OPERATIONS
+    # =====================================================
+
+    created.append(
+        db.notifications.create_index(
+            [
+                ("user_id", ASCENDING),
+                ("read_at", ASCENDING),
+                ("created_at", DESCENDING),
+            ]
+        )
+    )
+
+    created.append(
+        db.audit_logs.create_index(
+            [
+                ("actor_id", ASCENDING),
+                ("created_at", DESCENDING),
+            ]
+        )
+    )
+
+    created.append(
+        db.audit_logs.create_index(
+            [
+                ("resource_type", ASCENDING),
+                ("resource_id", ASCENDING),
+                ("created_at", DESCENDING),
+            ]
+        )
+    )
+
+    return created
