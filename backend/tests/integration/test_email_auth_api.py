@@ -413,8 +413,3 @@ def test_email_otp_is_single_use_at_api_level(
         ]
         == "OTP_EXPIRED"
     )
-
-
-
-
-

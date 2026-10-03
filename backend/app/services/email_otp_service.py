@@ -459,4 +459,3 @@ def verify_email_otp(
             "could not be processed."
         )
     )
-
