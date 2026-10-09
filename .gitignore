@@ -5,3 +5,4 @@ frontend/dist/
 __pycache__/
 *.pyc
 backend/storage/profile_media/
+.env
