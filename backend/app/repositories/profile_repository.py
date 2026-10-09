@@ -266,6 +266,96 @@ def update_profile_fields(
     )
 
 
+def sync_profile_media_fields(
+    user_id,
+    *,
+    media,
+    primary_media_id,
+    profile_completion_percent=None,
+):
+    """
+    Synchronize profile media references from the internal
+    media subsystem.
+
+    This intentionally bypasses normal profile PATCH handling.
+    Clients must manage media through the dedicated media API.
+    """
+
+    object_id = _to_object_id(
+        user_id
+    )
+
+    if object_id is None:
+        return None
+
+    if not isinstance(
+        media,
+        list,
+    ):
+        raise ValueError(
+            "Profile media must be a list."
+        )
+
+    fields = {
+        "media": list(
+            media
+        ),
+        "primary_media_id": (
+            primary_media_id
+        ),
+        "updated_at": utc_now(),
+    }
+
+    if (
+        profile_completion_percent
+        is not None
+    ):
+        try:
+            completion = int(
+                profile_completion_percent
+            )
+        except (
+            TypeError,
+            ValueError,
+        ) as exc:
+            raise ValueError(
+                (
+                    "Profile completion percent "
+                    "must be an integer."
+                )
+            ) from exc
+
+        if (
+            completion < 0
+            or completion > 100
+        ):
+            raise ValueError(
+                (
+                    "Profile completion percent "
+                    "must be between 0 and 100."
+                )
+            )
+
+        fields[
+            "profile_completion_percent"
+        ] = completion
+
+    result = mongo.db.profiles.update_one(
+        {
+            "user_id": object_id,
+        },
+        {
+            "$set": fields,
+        },
+    )
+
+    if result.matched_count != 1:
+        return None
+
+    return get_profile_by_user_id(
+        object_id
+    )
+
 def update_discovery_preferences_fields(
     user_id,
     updates,

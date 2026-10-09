@@ -12,6 +12,9 @@ from app.api.v1.discovery.routes import (
 from app.api.v1.matches.routes import (
     matches_bp,
 )
+from app.api.v1.media.routes import (
+    media_bp,
+)
 from app.api.v1.onboarding.routes import (
     onboarding_bp,
 )
@@ -49,6 +52,10 @@ api_v1_bp.register_blueprint(
 
 api_v1_bp.register_blueprint(
     matches_bp
+)
+
+api_v1_bp.register_blueprint(
+    media_bp
 )
 
 

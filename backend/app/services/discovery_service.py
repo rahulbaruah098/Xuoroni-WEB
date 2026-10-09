@@ -1,4 +1,4 @@
-﻿"""Business logic for Xuoroni profile discovery."""
+"""Business logic for Xuoroni profile discovery."""
 
 from copy import deepcopy
 from datetime import (
@@ -26,6 +26,9 @@ from app.repositories.profile_repository import (
 from app.schemas.discovery import (
     build_discovery_candidate,
     build_discovery_page,
+)
+from app.schemas.media import (
+    MEDIA_KIND_PROFILE_VIDEO,
 )
 from app.services.discovery_validation import (
     encode_discovery_cursor,
@@ -359,6 +362,104 @@ def _privacy_safe_mapping(
     )
 
 
+def _serialize_discovery_media(
+    media,
+):
+    """
+    Convert lightweight profile.media references into safe,
+    API-renderable discovery media references.
+    """
+
+    if not isinstance(
+        media,
+        list,
+    ):
+        return []
+
+    result = []
+
+    for item in media:
+        if not isinstance(
+            item,
+            dict,
+        ):
+            continue
+
+        media_id = str(
+            item.get(
+                "media_id",
+                "",
+            )
+        ).strip()
+
+        kind = str(
+            item.get(
+                "kind",
+                "",
+            )
+        ).strip()
+
+        position = item.get(
+            "position"
+        )
+
+        if (
+            not media_id
+            or not kind
+            or not isinstance(
+                position,
+                int,
+            )
+            or isinstance(
+                position,
+                bool,
+            )
+            or position < 0
+        ):
+            continue
+
+        public_item = {
+            "media_id": media_id,
+            "kind": kind,
+            "position": position,
+            "content_url": (
+                f"/api/v1/media/"
+                f"{media_id}/content"
+            ),
+        }
+
+        if (
+            kind
+            == MEDIA_KIND_PROFILE_VIDEO
+        ):
+            public_item[
+                "duration_ms"
+            ] = item.get(
+                "duration_ms"
+            )
+
+            public_item[
+                "thumbnail_url"
+            ] = (
+                f"/api/v1/media/"
+                f"{media_id}/thumbnail"
+            )
+
+        else:
+            public_item[
+                "duration_ms"
+            ] = None
+
+            public_item[
+                "thumbnail_url"
+            ] = None
+
+        result.append(
+            public_item
+        )
+
+    return result
+
 def serialize_discovery_candidate(
     profile,
     *,
@@ -488,8 +589,12 @@ def serialize_discovery_candidate(
                     "relationship_intentions"
                 )
             ),
-            media=profile.get(
-                "media"
+            media=(
+                _serialize_discovery_media(
+                    profile.get(
+                        "media"
+                    )
+                )
             ),
             primary_media_id=(
                 profile.get(

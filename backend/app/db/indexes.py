@@ -171,6 +171,102 @@ def ensure_indexes(db) -> list[str]:
     )
 
     # =====================================================
+    # PROFILE MEDIA
+    # =====================================================
+
+    created.append(
+        db.profile_media.create_index(
+            [
+                ("user_id", ASCENDING),
+            ]
+        )
+    )
+
+    created.append(
+        db.profile_media.create_index(
+            [
+                ("user_id", ASCENDING),
+                ("position", ASCENDING),
+            ]
+        )
+    )
+
+    created.append(
+        db.profile_media.create_index(
+            [
+                ("user_id", ASCENDING),
+                ("status", ASCENDING),
+            ]
+        )
+    )
+
+    created.append(
+        db.profile_media.create_index(
+            [
+                ("storage_key", ASCENDING),
+            ],
+            unique=True,
+        )
+    )
+
+    # Prevent the same normalized photo/video from existing
+    # more than once as active media for the same user.
+    #
+    # Deleted history does not participate in this unique
+    # constraint, so a previously deleted item may be
+    # uploaded again later.
+    created.append(
+        db.profile_media.create_index(
+            [
+                ("user_id", ASCENDING),
+                ("sha256", ASCENDING),
+            ],
+            unique=True,
+            partialFilterExpression={
+                "status": "active",
+            },
+        )
+    )
+
+    # A user may have many non-primary media documents, but
+    # at most one active primary item.
+    created.append(
+        db.profile_media.create_index(
+            [
+                ("user_id", ASCENDING),
+                ("is_primary", ASCENDING),
+            ],
+            unique=True,
+            partialFilterExpression={
+                "status": "active",
+                "is_primary": True,
+            },
+        )
+    )
+
+    # Video thumbnails use separate objects.
+    #
+    # Photo documents explicitly store this field as null,
+    # so a sparse unique index is not sufficient: MongoDB
+    # still indexes an existing null field. Restrict the
+    # unique index to real string thumbnail keys only.
+    created.append(
+        db.profile_media.create_index(
+            [
+                (
+                    "thumbnail_storage_key",
+                    ASCENDING,
+                ),
+            ],
+            unique=True,
+            partialFilterExpression={
+                "thumbnail_storage_key": {
+                    "$type": "string",
+                },
+            },
+        )
+    )
+    # =====================================================
     # MATCHING
     # =====================================================
 
@@ -424,5 +520,3 @@ def ensure_indexes(db) -> list[str]:
     )
 
     return created
-
-

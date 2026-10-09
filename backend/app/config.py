@@ -173,6 +173,147 @@ class BaseConfig:
         )
     )
 
+    # =====================================================
+    # PROFILE MEDIA
+    # =====================================================
+    #
+    # The six-item limit is shared across photos and videos.
+    # Example: 4 photos + 2 videos = 6 profile media items.
+    #
+    # Local storage is used during development. The media
+    # service depends on a storage abstraction so S3 can be
+    # added later without changing media business logic.
+    MEDIA_STORAGE_BACKEND = os.getenv(
+        "MEDIA_STORAGE_BACKEND",
+        "local",
+    ).strip().lower()
+
+    MEDIA_LOCAL_ROOT = os.getenv(
+        "MEDIA_LOCAL_ROOT",
+        "storage/profile_media",
+    )
+
+    MEDIA_MAX_PROFILE_ITEMS = int(
+        os.getenv(
+            "MEDIA_MAX_PROFILE_ITEMS",
+            "6",
+        )
+    )
+
+    # Raw upload limit before normalization.
+    #
+    # Flask's global MAX_CONTENT_LENGTH remains the absolute
+    # request ceiling. This media-specific limit is enforced
+    # by the media processing service.
+    MEDIA_MAX_UPLOAD_BYTES = int(
+        os.getenv(
+            "MEDIA_MAX_UPLOAD_BYTES",
+            str(10 * 1024 * 1024),
+        )
+    )
+
+    # Image normalization.
+    MEDIA_MAX_WIDTH = int(
+        os.getenv(
+            "MEDIA_MAX_WIDTH",
+            "2000",
+        )
+    )
+
+    MEDIA_MAX_HEIGHT = int(
+        os.getenv(
+            "MEDIA_MAX_HEIGHT",
+            "2000",
+        )
+    )
+
+    MEDIA_MAX_IMAGE_PIXELS = int(
+        os.getenv(
+            "MEDIA_MAX_IMAGE_PIXELS",
+            "40000000",
+        )
+    )
+
+    MEDIA_OUTPUT_FORMAT = os.getenv(
+        "MEDIA_OUTPUT_FORMAT",
+        "WEBP",
+    ).strip().upper()
+
+    MEDIA_WEBP_QUALITY = int(
+        os.getenv(
+            "MEDIA_WEBP_QUALITY",
+            "85",
+        )
+    )
+
+    # Short profile videos.
+    #
+    # Xuoroni V1 supports clips up to four seconds.
+    MEDIA_VIDEO_MAX_DURATION_MS = int(
+        os.getenv(
+            "MEDIA_VIDEO_MAX_DURATION_MS",
+            "4000",
+        )
+    )
+
+    MEDIA_VIDEO_MAX_WIDTH = int(
+        os.getenv(
+            "MEDIA_VIDEO_MAX_WIDTH",
+            "1080",
+        )
+    )
+
+    MEDIA_VIDEO_MAX_HEIGHT = int(
+        os.getenv(
+            "MEDIA_VIDEO_MAX_HEIGHT",
+            "1920",
+        )
+    )
+
+    MEDIA_VIDEO_OUTPUT_FORMAT = os.getenv(
+        "MEDIA_VIDEO_OUTPUT_FORMAT",
+        "mp4",
+    ).strip().lower()
+
+    MEDIA_VIDEO_CODEC = os.getenv(
+        "MEDIA_VIDEO_CODEC",
+        "libx264",
+    ).strip()
+
+    MEDIA_VIDEO_AUDIO_CODEC = os.getenv(
+        "MEDIA_VIDEO_AUDIO_CODEC",
+        "aac",
+    ).strip()
+
+    MEDIA_VIDEO_CRF = int(
+        os.getenv(
+            "MEDIA_VIDEO_CRF",
+            "23",
+        )
+    )
+
+    MEDIA_VIDEO_PRESET = os.getenv(
+        "MEDIA_VIDEO_PRESET",
+        "medium",
+    ).strip()
+
+    MEDIA_VIDEO_THUMBNAIL_QUALITY = int(
+        os.getenv(
+            "MEDIA_VIDEO_THUMBNAIL_QUALITY",
+            "85",
+        )
+    )
+
+    MEDIA_FFMPEG_BINARY = os.getenv(
+        "MEDIA_FFMPEG_BINARY",
+        "ffmpeg",
+    ).strip()
+
+    MEDIA_FFPROBE_BINARY = os.getenv(
+        "MEDIA_FFPROBE_BINARY",
+        "ffprobe",
+    ).strip()
+
     REQUEST_ID_HEADER = "X-Request-ID"
 
     OTP_LENGTH = int(
